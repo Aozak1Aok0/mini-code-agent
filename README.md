@@ -1,4 +1,4 @@
-# code-agent
+# mini-code-agent
 
 沙箱里的 coding agent MVP：读代码 → 改文件 → 跑测试 → 失败后自我修复。
 
