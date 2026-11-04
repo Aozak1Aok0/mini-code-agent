@@ -15,7 +15,7 @@ def test_jail_blocks_parent_escape(tmp_path):
 def test_jail_blocks_absolute_path(tmp_path):
     ws = Workspace(tmp_path / "workspace")
     with pytest.raises(SandboxError):
-        ws.resolve("C:/Windows/System32/drivers/etc/hosts")
+        ws.resolve(str(tmp_path / "outside.txt"))
 
 
 def test_write_read_roundtrip(tmp_path):
