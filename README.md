@@ -39,7 +39,7 @@ MVP 的隔离：
 
 ## 评测
 
-12 个任务（5 bugfix / 4 feature / 3 refactor），每个任务是一个带失败 `pytest` 的小仓库：
+15 个任务（8 bugfix / 4 feature / 3 refactor），每个任务是一个带失败 `pytest` 的小仓库；其中 0013–0015 只给现象、不给文件名，需要先复现再定位：
 
 ```powershell
 .\.venv\Scripts\python.exe -m evals.run_suite              # 全量
@@ -53,15 +53,19 @@ MVP 的隔离：
 
 | 指标 | 值 |
 |---|---|
-| 解决率 | 12 / 12（100%） |
-| 平均步数 | 7.2 |
-| token / 任务 | 8,029 in / 454 out |
-| 延迟 P50 | 6.9s |
-| 测试被改动 | 0 / 12 |
+| 解决率 | 15 / 15（100%） |
+| 平均步数 | 7.5 |
+| token / 任务 | 8,617 in / 468 out |
+| 延迟 P50 | 10.2s |
+| 测试被改动 | 0 / 15 |
 
 失败分类：定位错（`no_edit`）、改错（`wrong_fix`）、没跑测试（`no_test_run`）、
 循环（`loop`）、改了测试（`tests_modified`）、调用异常（`error`）。
 
-**这条基线没有区分度**：12/12 说明题目对当前模型太简单，失败分类器还拿不到样本。
-分析见 [`evals/reports/w2-baseline.md`](evals/reports/w2-baseline.md)；W3 加难度（多文件、
-隐式需求、先复现再修、性能类）后再看这组指标的变化。
+**这条基线没有区分度**：15/15 说明题目对当前模型太简单，失败分类器还拿不到样本。
+加难度后的对比：3 个隐式需求任务（只说现象、跨文件定位）步数 9.0 vs 7.5、输入 token +21%，
+仍然全绿——成本上去了，失败率没上去。
+
+分析见 [`evals/reports/w2-baseline.md`](evals/reports/w2-baseline.md) 与
+[`evals/reports/w3-difficulty.md`](evals/reports/w3-difficulty.md)。下一步方向：加规模、
+加约束（公共 API 不变 / 最小改动）、换判分（隐藏测试 + 回归集）。
