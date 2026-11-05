@@ -112,7 +112,10 @@ def main() -> None:
     records = []
     for task_dir in tasks:
         ws = out_dir / task_dir.name / "workspace"
-        shutil.copytree(task_dir, ws)
+        if ws.exists():
+            shutil.rmtree(ws)
+        # hidden/ 不进 workspace：agent 看不到验收用例
+        shutil.copytree(task_dir, ws, ignore=shutil.ignore_patterns("hidden"))
         prompt = (task_dir / "TASK.md").read_text(encoding="utf-8")
         hashes_before = test_hashes(task_dir)
 
@@ -128,10 +131,21 @@ def main() -> None:
         elapsed_ms = int((time.monotonic() - started) * 1000)
 
         solved, pytest_out = verify(ws)
-        tests_modified = test_hashes(ws) != hashes_before
+        tests_modified = {k: v for k, v in test_hashes(ws).items() if k in hashes_before} != hashes_before
+        hidden_used = (task_dir / "hidden").exists()
+        hidden_failed = False
+        if solved and hidden_used:
+            shutil.copytree(task_dir / "hidden", ws, dirs_exist_ok=True)
+            all_ok, hidden_out = verify(ws)
+            if not all_ok:
+                hidden_failed = True
+                solved = False
+                pytest_out = hidden_out
         if tests_modified:
             solved = False
             failure = "tests_modified"
+        elif hidden_failed:
+            failure = "hidden_test_failed"
         else:
             failure = classify(result, solved, args.max_steps)
 
@@ -141,6 +155,8 @@ def main() -> None:
             "solved": solved,
             "failure": failure,
             "tests_modified": tests_modified,
+            "hidden_used": hidden_used,
+            "hidden_failed": hidden_failed,
             "finished": bool(result and result.finished),
             "steps": len(result.steps) if result else 0,
             "tokens_in": result.tokens_in if result else 0,

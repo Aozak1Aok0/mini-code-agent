@@ -26,6 +26,13 @@ def test_each_task_is_well_formed():
         assert sources, f"{t.name} 没有源码文件"
 
 
+def test_hidden_dirs_are_well_formed():
+    for t in TASKS:
+        hidden = t / "hidden"
+        if hidden.exists():
+            assert list(hidden.glob("test_*.py")), f"{t.name}/hidden 里没有测试文件"
+
+
 def test_each_task_starts_red():
     for t in TASKS:
         out = subprocess.run(

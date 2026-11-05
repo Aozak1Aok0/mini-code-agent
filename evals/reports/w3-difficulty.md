@@ -53,3 +53,44 @@
 .\.venv\Scripts\python.exe -m evals.run_suite
 .\.venv\Scripts\python.exe -m evals.run_suite --tasks "tasks/001[3-5]_*"
 ```
+
+## 隐藏测试（W3 后半）
+
+上一节第 3 条路：把「可见测试全绿」换成「可见 + 隐藏都绿」。7 个任务加了
+`tasks/<id>/hidden/test_hidden.py`，复制 workspace 时排除 `hidden/`，agent 跑完
+可见测试后由 harness 合并再跑一遍；隐藏不过记为 `hidden_test_failed`。
+
+### 公平原则
+
+隐藏测试只能测 TASK.md 能推出的行为。第一轮 0005 就踩了这条：hidden 测了裸 `\r`
+换行，而 TASK.md 只写了 `\r\n`，agent 按 spec 修完仍然失败——这不是模型的问题，
+是题目的问题。处理方式是补 TASK.md 而不是删测试：
+
+> 换行符要同时支持 `\n`、`\r\n` 和单独的 `\r`（老式 Mac 换行）。
+
+### 结果
+
+| 轮次 | 解决率 | 说明 |
+|---|---|---|
+| 首轮 | 14/15 | 0005 隐藏测试失败（spec 未覆盖裸 `\r`） |
+| 补 spec 后 | 15/15 | 0005 通过：8 步、10,546 in / 409 out |
+
+全量 15 题（runs/suite-w3-hidden-final）：平均 7.6 步、8,651 in / 472 out、P50 7.6s，
+各类别 8/8、4/4、3/3。
+
+### 结论
+
+1. **机制可用但还没证明有区分度。** 7 个任务的参考修复全部通过隐藏测试，判分能把
+   「可见绿」和「隐藏绿」分开；但这一轮没有抓到真正的能力差异。
+2. **首轮唯一的失败是 spec 缺口，不是模型失败。** 这条比 15/15 更值得写进报告：
+   隐藏测试如果超出任务描述，测的就是「猜作者意图」。
+3. **覆盖不全。** 只有 7/15 有 hidden，其余 8 题仍是可见测试即验收。
+4. **下一轮要区分度，只能动题目规模或约束**（300 行 / 6 文件 / 公共 API 不变 /
+   最小改动），或者给全部 15 题补 hidden 之后再换更难的题。
+
+### 复现
+
+```powershell
+.\.venv\Scripts\python.exe -m evals.run_suite                      # 全量，含隐藏测试
+.\.venv\Scripts\python.exe -m evals.run_suite --tasks "tasks/0005_*"
+```
