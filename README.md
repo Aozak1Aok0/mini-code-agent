@@ -39,7 +39,7 @@ MVP 的隔离：
 
 ## 评测
 
-17 个任务（10 bugfix / 4 feature / 3 refactor），每个任务是一个带失败 `pytest` 的小仓库；其中 0013–0015 只给现象、不给文件名，需要先复现再定位：
+18 个任务（10 bugfix / 4 feature / 4 refactor），每个任务是一个带失败 `pytest` 的小仓库；其中 0013–0015 只给现象、不给文件名，需要先复现再定位：
 
 ```powershell
 .\.venv\Scripts\python.exe -m evals.run_suite              # 全量
@@ -47,28 +47,28 @@ MVP 的隔离：
 ```
 
 评测脚本自己跑 pytest 验收，并校验 `test_*.py` 的哈希——测试被改过就不算通过，
-防止 agent 靠弱化测试拿分。17 个任务都带 `hidden/test_hidden.py`：复制时排除、可见测试通过后
+防止 agent 靠弱化测试拿分。18 个任务都带 `hidden/test_hidden.py`：复制时排除、可见测试通过后
 再跑一遍，失败记 `hidden_test_failed`。结果落在 `runs/suite-<时间>/results.jsonl` 与 `summary.md`。
 
 基线（2026-11-05，单次全量，`deepseek-chat`）：
 
 | 指标 | 值 |
 |---|---|
-| 解决率 | 17 / 17（100%） |
-| 平均步数 | 8.2 |
-| token / 任务 | 9,942 in / 534 out |
-| 延迟 P50 | 8.2s |
-| 测试被改动 | 0 / 17 |
+| 解决率 | 18 / 18（100%） |
+| 平均步数 | 8.6 |
+| token / 任务 | 10,725 in / 560 out |
+| 延迟 P50 | 8.5s |
+| 测试被改动 | 0 / 18 |
 
 失败分类：定位错（`no_edit`）、改错（`wrong_fix`）、没跑测试（`no_test_run`）、
 循环（`loop`）、改了测试（`tests_modified`）、调用异常（`error`）。
 
-**这条基线没有区分度**：17/17 说明题目对当前模型太简单，失败分类器还拿不到样本。
+**这条基线没有区分度**：18/18 说明题目对当前模型太简单，失败分类器还拿不到样本。
 加难度后的对比：3 个隐式需求任务（只说现象、跨文件定位）步数 9.0 vs 7.5、输入 token +21%，
 仍然全绿。隐藏测试两次抓到问题：0005（TASK.md 只写 CRLF、测试要求裸 CR，属超纲）与 0016（可见绿、
-原子性没做，属半吊子修复）；前者补 spec、后者补 spec 后也过。详细复盘见下。
+原子性没做，属半吊子修复）；前者补 spec、后者补 spec 后也过。0018（多文件重构 + 公共 API 约束）同样 14 步、21,864 in 通过——只要放在题面里，模型能读出「两个版本舍入不同」这种约束。
 
 分析见 [`evals/reports/w2-baseline.md`](evals/reports/w2-baseline.md) 与
-[`evals/reports/w3-difficulty.md`](evals/reports/w3-difficulty.md)。两个大题（0016/0017）步数 13.5 vs 7.5、输入 token 2.5 倍，解决率仍 100%——
-这套题现在测的是成本，不是成功率。下一步方向：多文件重构 + 公共 API 约束、
+[`evals/reports/w3-difficulty.md`](evals/reports/w3-difficulty.md)。三个大题（0016/0017/0018）步数 13.7 vs 7.4、输入 token 2.4 倍，解决率仍 100%——
+这套题现在测的是成本，不是成功率。下一步方向：写不清楚也得做对的要求（性能预算、兼容旧数据、跨模块不变量）、
 模糊需求，或错误点离症状 4 层以上的仓库。

@@ -127,12 +127,34 @@
 
 1. 这套题现在测的是**成本**，不是成功率——17/17 说明难度还没到能力边界。
 2. 隐藏测试的价值在「抓半吊子修复」：0016 那种只治可见症状的改法，隐藏测试一枪打掉。
-3. 要拿到失败率，下一轮只能换形态：多文件重构 + 公共 API 约束、模糊需求、或者 300 行以上
+3. 要拿到失败率，下一轮只能换形态：模糊需求、性能/兼容性约束、或者 300 行以上
    且错误点离症状 4 层调用的仓库。单纯加题目数量没用。
+
+## 0018：多文件重构 + 公共 API 约束（2026-11-05）
+
+设计：两个旧模块 `orders_a` / `orders_b` 各有一份结算实现，`.5` 的舍入规则不同
+（一个进位、一个取偶）。要求抽公共 `pricing.sum_items` / `pricing.total(mode)`，
+两个旧模块变薄封装且输出逐字节不变。
+
+- 参考修复：`pricing.total` 用 `Decimal(str(raw)).quantize(..., ROUND_HALF_UP)` 与
+  `round(raw)` 两条分支；旧模块各委托一条。
+- 初始状态：可见 `test_orders.py` 全绿，`test_contract.py` 红（`NotImplementedError`）。
+- 隐藏测试 7 条：2.5 → 3/2、3.5 → 4/4、旧模块单独可用、core 与旧模块等价、
+  `sum_items` 不取整、未知 mode 抛 `ValueError`、`api.both` 两个键。
+
+结果：14 步、21,864 in / 906 out、P50 12.7s，一次通过。
+
+判断：这类「把差异写进题面」的重构题同样不构成失败。模型会读 TASK.md 里的舍入说明，
+并按 mode 分支实现——它怕的是**没写清楚**，不是**文件多**。所以下一道题要把要求埋在
+「不写也得做对」的地方：性能预算、旧数据兼容、跨模块不变量（例如「任何路径下
+`sum(ledger) == balances()`」），而不是再堆文件数。
+
+全量 18 题：18/18、8.6 步、10,725 in / 560 out、P50 8.5s。
+
 
 ### 复现
 
 ```powershell
 .\.venv\Scripts\python.exe -m evals.run_suite
-.\.venv\Scripts\python.exe -m evals.run_suite --tasks "tasks/001[67]_*"
+.\.venv\Scripts\python.exe -m evals.run_suite --tasks "tasks/001[678]_*"
 ```
