@@ -37,7 +37,31 @@ MVP 的隔离：
 
 这是 Windows 上「真隔离」的合理替代。要更强隔离（Docker / nsjail / 只读挂载）见后续加固。
 
-## 评测（待建）
+## 评测
 
-12 个任务：5 bugfix / 4 feature / 3 refactor。指标：解决率、平均步数、token/任务、P50 延迟；
-失败分四类：定位错 / 改错 / 没跑测试 / 循环。`evals/` 在 W2 补上。
+12 个任务（5 bugfix / 4 feature / 3 refactor），每个任务是一个带失败 `pytest` 的小仓库：
+
+```powershell
+.\.venv\Scripts\python.exe -m evals.run_suite              # 全量
+.\.venv\Scripts\python.exe -m evals.run_suite --list        # 只列任务，不调用模型
+```
+
+评测脚本自己跑 pytest 验收，并校验 `test_*.py` 的哈希——测试被改过就不算通过，
+防止 agent 靠弱化测试拿分。结果落在 `runs/suite-<时间>/results.jsonl` 与 `summary.md`。
+
+基线（2026-11-05，单次全量，`deepseek-chat`）：
+
+| 指标 | 值 |
+|---|---|
+| 解决率 | 12 / 12（100%） |
+| 平均步数 | 7.2 |
+| token / 任务 | 8,029 in / 454 out |
+| 延迟 P50 | 6.9s |
+| 测试被改动 | 0 / 12 |
+
+失败分类：定位错（`no_edit`）、改错（`wrong_fix`）、没跑测试（`no_test_run`）、
+循环（`loop`）、改了测试（`tests_modified`）、调用异常（`error`）。
+
+**这条基线没有区分度**：12/12 说明题目对当前模型太简单，失败分类器还拿不到样本。
+分析见 [`evals/reports/w2-baseline.md`](evals/reports/w2-baseline.md)；W3 加难度（多文件、
+隐式需求、先复现再修、性能类）后再看这组指标的变化。
