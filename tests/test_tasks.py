@@ -14,7 +14,7 @@ TASKS = sorted(p for p in (ROOT / "tasks").iterdir() if p.is_dir())
 
 
 def test_have_tasks():
-    assert len(TASKS) == 19, f"期望 19 个任务，实际 {len(TASKS)}"
+    assert len(TASKS) == 20, f"期望 20 个任务，实际 {len(TASKS)}"
 
 
 def test_each_task_is_well_formed():
@@ -34,12 +34,14 @@ def test_hidden_dirs_are_well_formed():
 
 
 def test_each_task_starts_red():
+    """默认任务初始为红；带 GREEN_START 标记的任务，可见测试全绿、坑只在隐藏测试里。"""
     for t in TASKS:
-        out = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q"],
-            cwd=str(t),
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        assert out.returncode != 0, f"{t.name} 初始就是绿的，agent 无活可干"
+        green_start = (t / "GREEN_START").exists()
+        args = [sys.executable, "-m", "pytest", "-q"]
+        if green_start:
+            args.append("--ignore=hidden")
+        out = subprocess.run(args, cwd=str(t), capture_output=True, text=True, timeout=120)
+        if green_start:
+            assert out.returncode == 0, f"{t.name} 标了 GREEN_START，可见测试却没过"
+        else:
+            assert out.returncode != 0, f"{t.name} 初始就是绿的，agent 无活可干"
