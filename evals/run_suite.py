@@ -33,7 +33,7 @@ def find_tasks(pattern: str) -> list[Path]:
     return sorted(p for p in ROOT.glob(pattern) if p.is_dir() and (p / "TASK.md").exists())
 
 
-CATEGORIES = {"0001_mean_empty": "bugfix"}
+CATEGORIES = {"0001_mean_empty": "bugfix", "0019_perf_hotpath": "refactor"}
 
 
 def category_of(task_dir: Path) -> str:

@@ -14,7 +14,7 @@ TASKS = sorted(p for p in (ROOT / "tasks").iterdir() if p.is_dir())
 
 
 def test_have_tasks():
-    assert len(TASKS) == 18, f"期望 18 个任务，实际 {len(TASKS)}"
+    assert len(TASKS) == 19, f"期望 19 个任务，实际 {len(TASKS)}"
 
 
 def test_each_task_is_well_formed():
