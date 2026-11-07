@@ -38,6 +38,16 @@ def fmt_int(n: float) -> str:
     return f"{int(round(n)):,}"
 
 
+CAT_FALLBACK = {"0019_perf_hotpath": "perf", "0020_hidden_signal": "perf"}
+
+
+def category(row: dict) -> str:
+    cat = row.get("category") or ""
+    if cat and cat != "unknown":
+        return cat
+    return CAT_FALLBACK.get(row["task"], "unknown")
+
+
 def tool_class(name: str) -> str:
     return {
         "read_file": "read",
@@ -72,7 +82,7 @@ def main() -> None:
 
     cats: dict[str, list[int]] = {}
     for r in rows:
-        c = r.get("category") or "unknown"
+        c = category(r)
         cats.setdefault(c, [0, 0])
         cats[c][0] += 1
         cats[c][1] += 1 if r["solved"] else 0
@@ -87,8 +97,8 @@ def main() -> None:
         table_rows.append(
             "<tr>"
             f'<td class="tid">{html.escape(r["task"])}</td>'
-            f'<td><span class="cat cat-{html.escape(r.get("category") or "unknown")}">'
-            f'{html.escape(r.get("category") or "unknown")}</span></td>'
+            f'<td><span class="cat cat-{html.escape(category(r))}">'
+            f'{html.escape(category(r))}</span></td>'
             f'<td class="num">{r["steps"]}</td>'
             f'<td class="num">{fmt_int(r["tokens_in"])}</td>'
             f'<td class="num">{r["elapsed_ms"] / 1000:.1f}s</td>'
