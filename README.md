@@ -5,6 +5,9 @@
 定位是「小任务 + 强评测」，不是通用编程助手：每个任务是一个带 `pytest` 的小仓库，
 agent 在独立 workspace 里把测试跑绿，评测看解决率、步数、token 与失败分类。
 
+- 评测页（数字与逐题 trace）：https://aozak1aok0.github.io/mini-code-agent/
+- 完整报告：[docs/report.md](docs/report.md)
+
 ## 快速开始
 
 ```powershell
