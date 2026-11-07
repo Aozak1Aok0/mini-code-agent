@@ -42,7 +42,7 @@ MVP 的隔离：
 
 ## 评测
 
-20 个任务（10 bugfix / 4 feature / 4 refactor / 2 perf），每个任务是一个带失败 `pytest` 的小仓库；其中 0013–0015 只给现象、不给文件名，需要先复现再定位：
+21 个任务（10 bugfix / 4 feature / 4 refactor / 2 perf / 1 long），每个任务是一个带失败 `pytest` 的小仓库；其中 0013–0015 只给现象、不给文件名，需要先复现再定位：
 
 ```powershell
 .\.venv\Scripts\python.exe -m evals.run_suite              # 全量
@@ -50,18 +50,18 @@ MVP 的隔离：
 ```
 
 评测脚本自己跑 pytest 验收，并校验 `test_*.py` 的哈希——测试被改过就不算通过，
-防止 agent 靠弱化测试拿分。20 个任务都带 `hidden/test_hidden.py`：复制时排除、可见测试通过后
+防止 agent 靠弱化测试拿分。21 个任务都带 `hidden/test_hidden.py`：复制时排除、可见测试通过后
 再跑一遍，失败记 `hidden_test_failed`。结果落在 `runs/suite-<时间>/results.jsonl` 与 `summary.md`。
 
 基线（2026-11-05，单次全量，`deepseek-chat`）：
 
 | 指标 | 值 |
 |---|---|
-| 解决率 | 20 / 20（100%） |
-| 平均步数 | 9.2 |
-| token / 任务 | 12,372 in / 645 out |
+| 解决率 | 21 / 21（100%） |
+| 平均步数 | 9.7 |
+| token / 任务 | 14,069 in / 715 out |
 | 延迟 P50 | 7.2s |
-| 测试被改动 | 0 / 20 |
+| 测试被改动 | 0 / 21 |
 
 失败分类：定位错（`no_edit`）、改错（`wrong_fix`）、没跑测试（`no_test_run`）、
 循环（`loop`）、改了测试（`tests_modified`）、调用异常（`error`）。
