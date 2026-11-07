@@ -30,7 +30,12 @@ TEST_TIMEOUT = 120
 
 
 def find_tasks(pattern: str) -> list[Path]:
-    return sorted(p for p in ROOT.glob(pattern) if p.is_dir() and (p / "TASK.md").exists())
+    found = set()
+    for pat in (x.strip() for x in pattern.split(",")):
+        if not pat:
+            continue
+        found.update(p for p in ROOT.glob(pat) if p.is_dir() and (p / "TASK.md").exists())
+    return sorted(found)
 
 
 CATEGORIES = {"0001_mean_empty": "bugfix", "0021_long_ledger": "long", "0019_perf_hotpath": "perf", "0020_hidden_signal": "perf"}
