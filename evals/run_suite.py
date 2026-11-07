@@ -71,7 +71,7 @@ def verify(workspace: Path) -> tuple[bool, str]:
         return False, f"pytest 超时（>{TEST_TIMEOUT}s）"
 
 
-def classify(result, solved: bool, max_steps: int) -> str:
+def classify(result, solved: bool, max_rounds: int) -> str:
     if result is not None and result.error:
         return "error"
     if solved:
@@ -79,7 +79,7 @@ def classify(result, solved: bool, max_steps: int) -> str:
         return "solved_without_tests" if "run_tests" not in tools else "solved"
     if result is None:
         return "error"
-    if not result.finished and len(result.steps) >= max_steps:
+    if not result.finished and result.rounds >= max_rounds:
         return "loop"
     tools = [s.tool for s in result.steps]
     if "write_file" not in tools:
@@ -93,7 +93,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tasks", default="tasks/0*", help="glob，默认 tasks/0*")
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--max-steps", type=int, default=12)
+    ap.add_argument("--max-rounds", "--max-steps", dest="max_rounds", type=int, default=12)
     ap.add_argument("--model", default="deepseek-chat")
     ap.add_argument("--out-dir", default="")
     ap.add_argument("--list", action="store_true")
@@ -127,7 +127,7 @@ def main() -> None:
         started = time.monotonic()
         result = None
         try:
-            agent = Agent(Workspace(ws), model=args.model, max_steps=args.max_steps)
+            agent = Agent(Workspace(ws), model=args.model, max_rounds=args.max_rounds)
             result = agent.run(prompt)
         except Exception as e:  # noqa: BLE001
             err = f"{type(e).__name__}: {e}"
@@ -152,7 +152,7 @@ def main() -> None:
         elif hidden_failed:
             failure = "hidden_test_failed"
         else:
-            failure = classify(result, solved, args.max_steps)
+            failure = classify(result, solved, args.max_rounds)
 
         rec = {
             "task": task_dir.name,
@@ -164,6 +164,7 @@ def main() -> None:
             "hidden_failed": hidden_failed,
             "finished": bool(result and result.finished),
             "steps": len(result.steps) if result else 0,
+            "rounds": result.rounds if result else 0,
             "tokens_in": result.tokens_in if result else 0,
             "tokens_out": result.tokens_out if result else 0,
             "elapsed_ms": elapsed_ms,
@@ -173,7 +174,7 @@ def main() -> None:
         }
         records.append(rec)
         print(f"{task_dir.name:<26} {'PASS' if solved else 'FAIL':<5} {failure:<20} "
-              f"steps={rec['steps']:<2} token={rec['tokens_in']}/{rec['tokens_out']} {elapsed_ms}ms")
+              f"steps={rec['steps']:<2} rounds={rec['rounds']:<2} token={rec['tokens_in']}/{rec['tokens_out']} {elapsed_ms}ms")
 
     (out_dir / "results.jsonl").write_text(
         "\n".join(json.dumps(r, ensure_ascii=False) for r in records) + "\n", encoding="utf-8"
@@ -189,18 +190,19 @@ def main() -> None:
         f"# 任务集结果（{stamp}）",
         "",
         f"- 解决率：{solved}/{len(records)} = {solved / len(records):.1%}",
-        f"- 平均步数：{statistics.mean(r['steps'] for r in records):.1f}",
+        f"- 平均步数（工具调用）：{statistics.mean(r['steps'] for r in records):.1f}",
+        f"- 平均轮数（模型请求）：{statistics.mean(r['rounds'] for r in records):.1f}",
         f"- token/任务：输入 {statistics.mean(r['tokens_in'] for r in records):.0f}、"
         f"输出 {statistics.mean(r['tokens_out'] for r in records):.0f}",
         f"- 延迟 P50：{statistics.median(lat):.0f}ms",
         "",
-        "| 任务 | 类别 | 结果 | 失败分类 | 步数 | token(in/out) | 延迟 |",
-        "|---|---|---|---|---|---|---|",
+        "| 任务 | 类别 | 结果 | 失败分类 | 步数 | 轮数 | token(in/out) | 延迟 |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for r in records:
         lines.append(
             f"| {r['task']} | {r['category']} | {'✅' if r['solved'] else '❌'} | {r['failure']} | "
-            f"{r['steps']} | {r['tokens_in']}/{r['tokens_out']} | {r['elapsed_ms']}ms |"
+            f"{r['steps']} | {r['rounds']} | {r['tokens_in']}/{r['tokens_out']} | {r['elapsed_ms']}ms |"
         )
     lines += ["", "## 分类", ""]
     for cat, vals in sorted(by_cat.items()):

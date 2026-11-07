@@ -39,6 +39,7 @@ class Result:
     passed: bool
     summary: str
     steps: list[Step] = field(default_factory=list)
+    rounds: int = 0
     tokens_in: int = 0
     tokens_out: int = 0
     error: str = ""
@@ -50,12 +51,12 @@ class Agent:
         workspace: Workspace,
         *,
         model: str = "deepseek-chat",
-        max_steps: int = 12,
+        max_rounds: int = 12,
         client: OpenAI | None = None,
     ) -> None:
         self.ws = workspace
         self.model = model
-        self.max_steps = max_steps
+        self.max_rounds = max_rounds
         self.client = client or OpenAI(api_key=get_deepseek_key(), base_url="https://api.deepseek.com")
 
     def run(self, task: str) -> Result:
@@ -65,7 +66,8 @@ class Agent:
         ]
         result = Result(finished=False, passed=False, summary="")
 
-        for step_no in range(1, self.max_steps + 1):
+        for round_no in range(1, self.max_rounds + 1):
+            result.rounds = round_no
             try:
                 resp = self.client.chat.completions.create(
                     model=self.model,
@@ -103,7 +105,7 @@ class Agent:
 
                 result.steps.append(
                     Step(
-                        n=step_no,
+                        n=round_no,
                         tool=call.function.name,
                         args=args,
                         ok=bool(out.get("ok")),
@@ -126,6 +128,6 @@ class Agent:
                     result.passed = tests["passed"]
                     return result
 
-        result.summary = "达到步数上限"
+        result.summary = "达到轮数上限"
         result.passed = self.ws.run_tests()["passed"]
         return result

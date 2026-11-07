@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BIG = "tasks/001[6-9]_*,tasks/002[01]_*"
 
 
-def run_rep(rep: int, tasks: str, max_steps: int) -> Path:
+def run_rep(rep: int, tasks: str, max_rounds: int) -> Path:
     out = ROOT / "runs" / f"var-rep{rep}"
     if out.exists():
         for child in out.iterdir():
@@ -32,7 +32,7 @@ def run_rep(rep: int, tasks: str, max_steps: int) -> Path:
             "--tasks",
             tasks,
             "--max-steps",
-            str(max_steps),
+            str(max_rounds),
             "--out-dir",
             str(out),
         ],
@@ -55,18 +55,18 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--reps", type=int, default=3)
     ap.add_argument("--tasks", default=BIG)
-    ap.add_argument("--max-steps", type=int, default=40)
+    ap.add_argument("--max-rounds", "--max-steps", dest="max_rounds", type=int, default=40)
     args = ap.parse_args()
 
     runs = []
     for rep in range(1, args.reps + 1):
         print(f"[rep {rep}/{args.reps}]", flush=True)
-        runs.append(load(run_rep(rep, args.tasks, args.max_steps)))
+        runs.append(load(run_rep(rep, args.tasks, args.max_rounds)))
 
     tasks = sorted({r["task"] for rows in runs for r in rows})
     lines = ["# 重复运行方差", "", f"- 轮数：{args.reps}", f"- 任务：{len(tasks)}", ""]
-    lines.append("| 任务 | 解决 | 步数 | 输入 token | 耗时 |")
-    lines.append("|---|---|---|---|---|")
+    lines.append("| 任务 | 解决 | 步数 | 轮数 | 输入 token | 耗时 |")
+    lines.append("|---|---|---|---|---|---|")
 
     total_steps, total_in, solved_all = [], [], 0
     for task in tasks:
@@ -74,13 +74,14 @@ def main() -> None:
         solved = sum(1 for r in rows if r["solved"])
         solved_all += solved
         steps = [r["steps"] for r in rows]
+        rounds = [r["rounds"] for r in rows]
         tin = [r["tokens_in"] for r in rows]
         ms = [r["elapsed_ms"] for r in rows]
         total_steps += steps
         total_in += tin
         sd = statistics.stdev(steps) if len(steps) > 1 else 0.0
         lines.append(
-            f"| {task} | {solved}/{len(rows)} | {min(steps)}–{max(steps)} (σ {sd:.1f}) | "
+            f"| {task} | {solved}/{len(rows)} | {min(steps)}–{max(steps)} | {min(rounds)}–{max(rounds)} | "
             f"{round(statistics.mean(tin)):,} | {round(statistics.mean(ms) / 1000, 1)}s |"
         )
 

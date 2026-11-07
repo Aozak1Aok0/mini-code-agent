@@ -23,7 +23,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True, help="任务目录（包含仓库文件与 test_*.py）")
     ap.add_argument("--runs-dir", default=str(ROOT / "runs"))
-    ap.add_argument("--max-steps", type=int, default=12)
+    ap.add_argument("--max-rounds", type=int, default=12)
     ap.add_argument("--model", default="deepseek-chat")
     ap.add_argument("--keep", action="store_true", help="保留 workspace（默认保留）")
     args = ap.parse_args()
@@ -42,7 +42,7 @@ def main() -> None:
     )
 
     print(f"任务：{task_dir.name}\n工作区：{ws_dir}\n")
-    agent = Agent(Workspace(ws_dir), model=args.model, max_steps=args.max_steps)
+    agent = Agent(Workspace(ws_dir), model=args.model, max_rounds=args.max_rounds)
     result = agent.run(prompt)
 
     for s in result.steps:
